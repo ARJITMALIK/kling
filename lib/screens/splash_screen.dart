@@ -32,10 +32,25 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     );
     _controller.forward();
 
-    // Navigate after animation
-    Future.delayed(const Duration(milliseconds: 2500), () {
-      if (mounted) {
-        // For demo, go directly to login (in prod, check auth state)
+    // Navigate after animation and checking auth state
+    Future.delayed(const Duration(milliseconds: 2500), () async {
+      if (!mounted) return;
+      
+      // Wait for auth verification to complete
+      var auth = ref.read(authProvider);
+      while (auth.status == AuthStatus.loading) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        if (!mounted) return;
+        auth = ref.read(authProvider);
+      }
+
+      if (auth.status == AuthStatus.authenticated) {
+        if (auth.user?.coupleId != null && auth.user!.coupleId!.isNotEmpty) {
+          Navigator.of(context).pushReplacementNamed(AppRoutes.dashboard);
+        } else {
+          Navigator.of(context).pushReplacementNamed(AppRoutes.invite);
+        }
+      } else {
         Navigator.of(context).pushReplacementNamed(AppRoutes.login);
       }
     });

@@ -1,6 +1,22 @@
+import 'dart:io' show Platform;
+
 class ApiConstants {
-  static const String baseUrl = 'http://localhost:8080/api';
-  static const String wsUrl = 'ws://localhost:8080/ws';
+  /// The backend runs on port 3000 with global prefix `api/v1`.
+  /// Android emulator maps `10.0.2.2` → host machine's `localhost`.
+  /// iOS simulator can reach `localhost` directly.
+  /// For physical devices, replace with your machine's LAN IP.
+  static String get _host {
+    if (Platform.isAndroid) return '192.168.1.42';
+    return 'localhost'; // iOS simulator & desktop
+  }
+
+  static String get baseUrl => 'http://$_host:3000/api/v1';
+
+  /// Socket.IO connects over HTTP (it upgrades to WS internally).
+  static String get socketUrl => 'http://$_host:3000';
+
+  /// The Socket.IO namespace used by the live-gateway.
+  static const String socketNamespace = '/live';
 }
 
 class GameConstants {

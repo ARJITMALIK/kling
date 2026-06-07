@@ -1,14 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
-import '../services/mock_api_service.dart';
+import '../services/real_api_service.dart';
 import '../services/socket_service.dart';
 
 // ─── Service Providers ───
 
 final apiServiceProvider = Provider<ApiService>((ref) {
-  // Switch to RealApiService() when backend is ready
-  return MockApiService();
+  return RealApiService();
 });
 
 final socketServiceProvider = Provider<SocketService>((ref) {
@@ -43,13 +42,28 @@ class AuthState {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final ApiService _api;
+  final SocketService _socket;
 
-  AuthNotifier(this._api) : super(const AuthState());
+  AuthNotifier(this._api, this._socket) : super(const AuthState()) {
+    // Proactively check auth on initialization
+    checkAuth();
+  }
+
+  void _connectSocket() {
+    if (_api is RealApiService) {
+      final token = _api.accessToken;
+      if (token != null && token.isNotEmpty) {
+        _socket.setAuthToken(token);
+        _socket.connectLive();
+      }
+    }
+  }
 
   Future<void> checkAuth() async {
     try {
       final user = await _api.getMe();
       state = AuthState(status: AuthStatus.authenticated, user: user);
+      _connectSocket();
     } catch (_) {
       state = const AuthState(status: AuthStatus.unauthenticated);
     }
@@ -60,6 +74,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final user = await _api.login(email, password);
       state = AuthState(status: AuthStatus.authenticated, user: user);
+      _connectSocket();
       return true;
     } catch (e) {
       state = AuthState(
@@ -75,6 +90,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final user = await _api.register(email, password, displayName);
       state = AuthState(status: AuthStatus.authenticated, user: user);
+      _connectSocket();
       return true;
     } catch (e) {
       state = AuthState(
@@ -86,6 +102,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> logout() async {
+    _socket.disconnectLive();
     await _api.logout();
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
@@ -96,5 +113,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier(ref.read(apiServiceProvider));
+  final api = ref.read(apiServiceProvider);
+  final socket = ref.read(socketServiceProvider);
+  return AuthNotifier(api, socket);
 });

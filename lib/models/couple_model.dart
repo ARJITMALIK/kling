@@ -21,17 +21,28 @@ class CoupleModel {
 
   factory CoupleModel.fromJson(Map<String, dynamic> json) {
     return CoupleModel(
-      coupleId: json['coupleId'] as String,
-      user1Id: json['user1Id'] as String,
-      user2Id: json['user2Id'] as String,
+      coupleId: (json['coupleId'] ?? json['id'] ?? '') as String,
+      user1Id: (json['user1Id'] ?? '') as String,
+      user2Id: (json['user2Id'] ?? '') as String,
       firstMeetDate: json['firstMeetDate'] != null
           ? DateTime.parse(json['firstMeetDate'] as String)
           : null,
-      togetherSince: DateTime.parse(json['togetherSince'] as String),
-      streaks: CoupleStreaks.fromJson(json['streaks'] as Map<String, dynamic>),
-      missingMeter:
-          MissingMeter.fromJson(json['missingMeter'] as Map<String, dynamic>),
-      gameStats: GameStats.fromJson(json['gameStats'] as Map<String, dynamic>),
+      togetherSince: json['togetherSince'] != null
+          ? DateTime.parse(json['togetherSince'] as String)
+          : DateTime.now(),
+      streaks: json['streaks'] != null
+          ? CoupleStreaks.fromJson(json['streaks'] as Map<String, dynamic>)
+          : const CoupleStreaks(
+              general: StreakData(count: 0, lastDate: ''),
+              goodMorning: StreakData(count: 0, lastDate: ''),
+              goodNight: StreakData(count: 0, lastDate: ''),
+            ),
+      missingMeter: json['missingMeter'] != null
+          ? MissingMeter.fromJson(json['missingMeter'] as Map<String, dynamic>)
+          : const MissingMeter(user1Score: 0, user2Score: 0, weekStart: ''),
+      gameStats: json['gameStats'] != null
+          ? GameStats.fromJson(json['gameStats'] as Map<String, dynamic>)
+          : const GameStats(user1Wins: 0, user2Wins: 0, draws: 0),
     );
   }
 
@@ -60,11 +71,15 @@ class CoupleStreaks {
 
   factory CoupleStreaks.fromJson(Map<String, dynamic> json) {
     return CoupleStreaks(
-      general: StreakData.fromJson(json['general'] as Map<String, dynamic>),
-      goodMorning:
-          StreakData.fromJson(json['goodMorning'] as Map<String, dynamic>),
-      goodNight:
-          StreakData.fromJson(json['goodNight'] as Map<String, dynamic>),
+      general: json['general'] != null
+          ? StreakData.fromJson(json['general'] as Map<String, dynamic>)
+          : const StreakData(count: 0, lastDate: ''),
+      goodMorning: json['goodMorning'] != null
+          ? StreakData.fromJson(json['goodMorning'] as Map<String, dynamic>)
+          : const StreakData(count: 0, lastDate: ''),
+      goodNight: json['goodNight'] != null
+          ? StreakData.fromJson(json['goodNight'] as Map<String, dynamic>)
+          : const StreakData(count: 0, lastDate: ''),
     );
   }
 
@@ -90,8 +105,8 @@ class StreakData {
 
   factory StreakData.fromJson(Map<String, dynamic> json) {
     return StreakData(
-      count: json['count'] as int,
-      lastDate: json['lastDate'] as String,
+      count: (json['count'] ?? 0) as int,
+      lastDate: (json['lastDate'] ?? json['lastAt'] ?? '') as String,
       user1Done: json['user1Done'] as bool? ?? false,
       user2Done: json['user2Done'] as bool? ?? false,
     );
@@ -118,9 +133,9 @@ class MissingMeter {
 
   factory MissingMeter.fromJson(Map<String, dynamic> json) {
     return MissingMeter(
-      user1Score: json['user1Score'] as int,
-      user2Score: json['user2Score'] as int,
-      weekStart: json['weekStart'] as String,
+      user1Score: (json['user1Score'] ?? 0) as int,
+      user2Score: (json['user2Score'] ?? 0) as int,
+      weekStart: (json['weekStart'] ?? '') as String,
     );
   }
 
@@ -146,9 +161,9 @@ class GameStats {
 
   factory GameStats.fromJson(Map<String, dynamic> json) {
     return GameStats(
-      user1Wins: json['user1Wins'] as int,
-      user2Wins: json['user2Wins'] as int,
-      draws: json['draws'] as int,
+      user1Wins: (json['user1Wins'] ?? 0) as int,
+      user2Wins: (json['user2Wins'] ?? 0) as int,
+      draws: (json['draws'] ?? 0) as int,
     );
   }
 

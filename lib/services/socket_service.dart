@@ -1,101 +1,202 @@
 import 'dart:async';
-import 'dart:convert';
-import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:socket_io_client/socket_io_client.dart' as IO;
 import '../config/constants.dart';
 import '../models/game/game_action.dart';
 
-/// WebSocket service for real-time game sync and dashboard updates.
+/// Socket.IO service for real-time game sync and dashboard updates.
 class SocketService {
-  WebSocketChannel? _gameChannel;
-  WebSocketChannel? _liveChannel;
+  IO.Socket? _socket;
   String? _authToken;
 
-  // Game event streams
+  // Stream controllers
+  final _liveEventsController = StreamController<Map<String, dynamic>>.broadcast();
+  final _moodController = StreamController<Map<String, dynamic>>.broadcast();
+  final _batteryController = StreamController<Map<String, dynamic>>.broadcast();
+  final _musicController = StreamController<Map<String, dynamic>>.broadcast();
+  final _pingController = StreamController<Map<String, dynamic>>.broadcast();
+  final _emoteController = StreamController<Map<String, dynamic>>.broadcast();
+  final _gameStateController = StreamController<Map<String, dynamic>>.broadcast();
+
+  // Compatibility controllers for game channel
   final _gameActionController = StreamController<GameAction>.broadcast();
   final _gameEventController = StreamController<Map<String, dynamic>>.broadcast();
 
-  // Live dashboard event streams
-  final _liveEventController = StreamController<Map<String, dynamic>>.broadcast();
+  // Public streams
+  Stream<Map<String, dynamic>> get liveEvents => _liveEventsController.stream;
+  Stream<Map<String, dynamic>> get moodEvents => _moodController.stream;
+  Stream<Map<String, dynamic>> get batteryEvents => _batteryController.stream;
+  Stream<Map<String, dynamic>> get musicEvents => _musicController.stream;
+  Stream<Map<String, dynamic>> get pingEvents => _pingController.stream;
+  Stream<Map<String, dynamic>> get emoteEvents => _emoteController.stream;
+  Stream<Map<String, dynamic>> get gameStateEvents => _gameStateController.stream;
 
+  // Compatibility streams
   Stream<GameAction> get gameActions => _gameActionController.stream;
   Stream<Map<String, dynamic>> get gameEvents => _gameEventController.stream;
-  Stream<Map<String, dynamic>> get liveEvents => _liveEventController.stream;
+
+  bool get isConnected => _socket?.connected ?? false;
 
   void setAuthToken(String token) {
     _authToken = token;
   }
 
-  // ─── Game WebSocket ───
-
-  void connectToGame(String gameId) {
-    _gameChannel?.sink.close();
-    _gameChannel = WebSocketChannel.connect(
-      Uri.parse('${ApiConstants.wsUrl}/game/$gameId?token=$_authToken'),
-    );
-
-    _gameChannel!.stream.listen(
-      (data) {
-        final json = jsonDecode(data as String) as Map<String, dynamic>;
-        final type = json['type'] as String;
-
-        if (type == 'opponent_deploy' || type == 'opponent_emote') {
-          // Convert to GameAction
-          final actionJson = Map<String, dynamic>.from(json);
-          actionJson['type'] = type.replaceFirst('opponent_', '');
-          _gameActionController.add(GameAction.fromJson(actionJson));
-        } else {
-          _gameEventController.add(json);
-        }
-      },
-      onError: (error) {
-        _gameEventController.addError(error);
-      },
-      onDone: () {
-        _gameEventController.add({'type': 'disconnected'});
-      },
-    );
-  }
-
-  void sendGameAction(GameAction action) {
-    _gameChannel?.sink.add(jsonEncode(action.toJson()));
-  }
-
-  void disconnectFromGame() {
-    _gameChannel?.sink.close();
-    _gameChannel = null;
-  }
-
-  // ─── Live Dashboard WebSocket ───
+  // ─── Live Dashboard Socket.IO ───
 
   void connectLive() {
-    _liveChannel?.sink.close();
-    _liveChannel = WebSocketChannel.connect(
-      Uri.parse('${ApiConstants.wsUrl}/live?token=$_authToken'),
-    );
+    if (_socket != null) {
+      disconnectLive();
+    }
 
-    _liveChannel!.stream.listen(
-      (data) {
-        final json = jsonDecode(data as String) as Map<String, dynamic>;
-        _liveEventController.add(json);
-      },
-      onError: (error) {
-        _liveEventController.addError(error);
-      },
-    );
+    final token = _authToken;
+    if (token == null || token.isEmpty) {
+      print('Cannot connect to live socket: token is null or empty');
+      return;
+    }
+
+    final url = '${ApiConstants.socketUrl}${ApiConstants.socketNamespace}';
+    print('Connecting to live socket at: $url');
+
+    _socket = IO.io(url, IO.OptionBuilder()
+      .setTransports(['websocket'])
+      .setAuth({'token': token})
+      .enableAutoConnect()
+      .setTimeout(10000)
+      .setReconnectionDelayMax(5000)
+      .build());
+
+    _socket!.onConnect((_) {
+      print('Connected to live socket namespace: ${ApiConstants.socketNamespace}');
+      _liveEventsController.add({'type': 'connected'});
+    });
+
+    _socket!.onDisconnect((_) {
+      print('Disconnected from live socket');
+      _liveEventsController.add({'type': 'disconnected'});
+    });
+
+    _socket!.onConnectError((err) {
+      print('Socket connection error: $err');
+      _liveEventsController.add({'type': 'error', 'error': err});
+    });
+
+    // Mood update listener
+    _socket!.on('mood:update', (data) {
+      print('Socket mood:update received: $data');
+      final map = Map<String, dynamic>.from(data as Map);
+      _moodController.add(map);
+      _liveEventsController.add({'type': 'mood', ...map});
+    });
+
+    // Battery sync listener
+    _socket!.on('battery:sync', (data) {
+      print('Socket battery:sync received: $data');
+      final map = Map<String, dynamic>.from(data as Map);
+      _batteryController.add(map);
+      _liveEventsController.add({'type': 'battery', ...map});
+    });
+
+    // Music sync listener
+    _socket!.on('music:sync', (data) {
+      print('Socket music:sync received: $data');
+      final map = Map<String, dynamic>.from(data as Map);
+      _musicController.add(map);
+      _liveEventsController.add({'type': 'music', ...map});
+    });
+
+    // Ping listener
+    _socket!.on('ping', (data) {
+      print('Socket ping received: $data');
+      final map = Map<String, dynamic>.from(data as Map);
+      _pingController.add(map);
+      _liveEventsController.add({'type': 'ping', ...map});
+    });
+
+    // Emote listener
+    _socket!.on('emote', (data) {
+      print('Socket emote received: $data');
+      final map = Map<String, dynamic>.from(data as Map);
+      _emoteController.add(map);
+      _liveEventsController.add({'type': 'emote', ...map});
+    });
+
+    // Game state updated listener
+    _socket!.on('game:state_updated', (data) {
+      print('Socket game:state_updated received: $data');
+      final map = Map<String, dynamic>.from(data as Map);
+      _gameStateController.add(map);
+      _gameEventController.add(map); // compatibility
+      _liveEventsController.add({'type': 'game_state', ...map});
+    });
+  }
+
+  // Emits
+  void sendMoodUpdate(String emoji) {
+    if (_socket != null && _socket!.connected) {
+      _socket!.emit('mood:update', {'emoji': emoji});
+    }
+  }
+
+  void sendBatterySync(int level) {
+    if (_socket != null && _socket!.connected) {
+      _socket!.emit('battery:sync', {'level': level});
+    }
+  }
+
+  void sendMusicSync(String title, String? artist) {
+    if (_socket != null && _socket!.connected) {
+      _socket!.emit('music:sync', {'title': title, 'artist': artist ?? ''});
+    }
+  }
+
+  void sendPing() {
+    if (_socket != null && _socket!.connected) {
+      _socket!.emit('ping');
+    }
+  }
+
+  void sendEmote(String emoji) {
+    if (_socket != null && _socket!.connected) {
+      _socket!.emit('emote', {'emoji': emoji});
+    }
   }
 
   void disconnectLive() {
-    _liveChannel?.sink.close();
-    _liveChannel = null;
+    _socket?.disconnect();
+    _socket?.close();
+    _socket = null;
+  }
+
+  // ─── Game WebSocket Compatibility Stubs ───
+
+  void connectToGame(String gameId) {
+    // The backend uses the live namespace /live for game state sync.
+    // This is a stub for backward compatibility.
+    print('connectToGame stub called for gameId: $gameId');
+  }
+
+  void sendGameAction(GameAction action) {
+    // Game actions are now sent via the REST deployTroop endpoint in RealApiService.
+    // This is a stub for backward compatibility.
+    print('sendGameAction stub called: ${action.toJson()}');
+  }
+
+  void disconnectFromGame() {
+    // Compatibility stub.
+    print('disconnectFromGame stub called');
   }
 
   // ─── Cleanup ───
 
   void dispose() {
-    disconnectFromGame();
     disconnectLive();
+    _liveEventsController.close();
+    _moodController.close();
+    _batteryController.close();
+    _musicController.close();
+    _pingController.close();
+    _emoteController.close();
+    _gameStateController.close();
     _gameActionController.close();
     _gameEventController.close();
-    _liveEventController.close();
   }
 }

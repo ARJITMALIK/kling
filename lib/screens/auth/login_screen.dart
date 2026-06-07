@@ -135,7 +135,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: Text(
-                          authState.error!,
+                          authState.error!.replaceAll(RegExp(r'ApiException\(\d*\):\s*'), ''),
                           style: const TextStyle(
                             color: AppColors.accentRed,
                             fontSize: 13,

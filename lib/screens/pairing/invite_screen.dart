@@ -35,11 +35,20 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
 
   Future<void> _generateCode() async {
     setState(() => _isLoading = true);
-    final code = await ref.read(coupleProvider.notifier).generateInviteCode();
-    setState(() {
-      _myCode = code;
-      _isLoading = false;
-    });
+    try {
+      final code = await ref.read(coupleProvider.notifier).generateInviteCode();
+      setState(() {
+        _myCode = code;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceAll('ApiException(0): ', '').replaceAll('ApiException(408): ', ''))),
+        );
+      }
+    }
   }
 
   Future<void> _joinCouple() async {
@@ -51,6 +60,11 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
     setState(() => _isJoining = false);
     if (success && mounted) {
       Navigator.of(context).pushReplacementNamed(AppRoutes.pairSuccess);
+    } else if (!success && mounted) {
+      final error = ref.read(coupleProvider).error ?? 'Failed to connect';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.replaceAll('ApiException(0): ', '').replaceAll('ApiException(408): ', ''))),
+      );
     }
   }
 
