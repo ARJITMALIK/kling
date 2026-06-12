@@ -127,6 +127,12 @@ class RealApiService implements ApiService {
   }
 
   @override
+  Future<void> cancelRequest() async {
+    await _post('/pairs/cancel', {});
+    await _refreshTokens();
+  }
+
+  @override
   Future<CoupleModel?> getCouple() async {
     // Build a CoupleModel from multiple backend endpoints
     try {
@@ -192,12 +198,15 @@ class RealApiService implements ApiService {
   Future<UserModel?> getPartnerStatus() async {
     try {
       final res = await _get('/pairs/partner');
-      // Backend returns {id, displayName, avatarUrl}
+      // Backend returns {id, displayName, avatarUrl, status, myInviteCode, partnerInviteCode}
       return UserModel(
         uid: res['id'] as String,
         email: '', // Not exposed by partner endpoint
         displayName: res['displayName'] as String,
         avatarUrl: res['avatarUrl'] as String?,
+        pairingStatus: res['status'] as String?,
+        inviteCode: res['myInviteCode'] as String?,
+        partnerInviteCode: res['partnerInviteCode'] as String?,
         createdAt: DateTime.now(),
       );
     } catch (_) {

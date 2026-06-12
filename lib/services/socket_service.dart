@@ -16,6 +16,7 @@ class SocketService {
   final _pingController = StreamController<Map<String, dynamic>>.broadcast();
   final _emoteController = StreamController<Map<String, dynamic>>.broadcast();
   final _gameStateController = StreamController<Map<String, dynamic>>.broadcast();
+  final _coupleEventsController = StreamController<Map<String, dynamic>>.broadcast();
 
   // Compatibility controllers for game channel
   final _gameActionController = StreamController<GameAction>.broadcast();
@@ -29,6 +30,7 @@ class SocketService {
   Stream<Map<String, dynamic>> get pingEvents => _pingController.stream;
   Stream<Map<String, dynamic>> get emoteEvents => _emoteController.stream;
   Stream<Map<String, dynamic>> get gameStateEvents => _gameStateController.stream;
+  Stream<Map<String, dynamic>> get coupleEvents => _coupleEventsController.stream;
 
   // Compatibility streams
   Stream<GameAction> get gameActions => _gameActionController.stream;
@@ -127,6 +129,25 @@ class SocketService {
       _gameEventController.add(map); // compatibility
       _liveEventsController.add({'type': 'game_state', ...map});
     });
+
+    // Couple events listeners
+    _socket!.on('couple:pending', (data) {
+      print('Socket couple:pending received: $data');
+      final map = Map<String, dynamic>.from(data as Map);
+      _coupleEventsController.add({'type': 'pending', ...map});
+    });
+
+    _socket!.on('couple:linked', (data) {
+      print('Socket couple:linked received: $data');
+      final map = Map<String, dynamic>.from(data as Map);
+      _coupleEventsController.add({'type': 'linked', ...map});
+    });
+
+    _socket!.on('couple:canceled', (data) {
+      print('Socket couple:canceled received: $data');
+      final map = Map<String, dynamic>.from(data as Map);
+      _coupleEventsController.add({'type': 'canceled', ...map});
+    });
   }
 
   // Emits
@@ -198,5 +219,6 @@ class SocketService {
     _gameStateController.close();
     _gameActionController.close();
     _gameEventController.close();
+    _coupleEventsController.close();
   }
 }

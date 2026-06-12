@@ -15,6 +15,7 @@ abstract class ApiService {
   // ─── Couple ───
   Future<String> generateInviteCode();
   Future<CoupleModel> joinCouple(String inviteCode);
+  Future<void> cancelRequest();
   Future<CoupleModel?> getCouple();
   Future<void> unpair();
 
