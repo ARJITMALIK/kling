@@ -6,8 +6,7 @@ class ApiConstants {
   /// iOS simulator can reach `localhost` directly.
   /// For physical devices, replace with your machine's LAN IP.
   static String get _host {
-    if (Platform.isAndroid) return '192.168.1.42';
-    return 'localhost'; // iOS simulator & desktop
+    return '192.168.1.43';
   }
 
   static String get baseUrl => 'http://$_host:3000/api/v1';
