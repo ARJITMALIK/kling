@@ -105,6 +105,11 @@ class CoupleNotifier extends StateNotifier<CoupleState> {
       print('CoupleNotifier: Game state updated: $data');
       loadCoupleData();
     }));
+
+    _subscriptions.add(_socket.coupleEvents.listen((data) {
+      print('CoupleNotifier: Couple event received: $data');
+      loadCoupleData();
+    }));
   }
 
   Future<void> loadCoupleData() async {
@@ -133,8 +138,18 @@ class CoupleNotifier extends StateNotifier<CoupleState> {
 
   Future<bool> joinCouple(String code) async {
     try {
-      final couple = await _api.joinCouple(code);
-      state = state.copyWith(couple: couple);
+      await _api.joinCouple(code);
+      await loadCoupleData();
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: e.toString());
+      return false;
+    }
+  }
+
+  Future<bool> cancelRequest() async {
+    try {
+      await _api.cancelRequest();
       await loadCoupleData();
       return true;
     } catch (e) {

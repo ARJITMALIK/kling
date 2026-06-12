@@ -6,6 +6,8 @@ class UserModel {
   final String? coupleId;
   final String? partnerId;
   final String? inviteCode;
+  final String? partnerInviteCode;
+  final String? pairingStatus;
   final int? battery;
   final double? lat;
   final double? lng;
@@ -22,6 +24,8 @@ class UserModel {
     this.coupleId,
     this.partnerId,
     this.inviteCode,
+    this.partnerInviteCode,
+    this.pairingStatus,
     this.battery,
     this.lat,
     this.lng,
@@ -31,7 +35,7 @@ class UserModel {
     required this.createdAt,
   });
 
-  bool get isPaired => coupleId != null && partnerId != null;
+  bool get isPaired => coupleId != null && partnerId != null && pairingStatus == 'ACTIVE';
 
   UserModel copyWith({
     String? uid,
@@ -41,6 +45,8 @@ class UserModel {
     String? coupleId,
     String? partnerId,
     String? inviteCode,
+    String? partnerInviteCode,
+    String? pairingStatus,
     int? battery,
     double? lat,
     double? lng,
@@ -57,6 +63,8 @@ class UserModel {
       coupleId: coupleId ?? this.coupleId,
       partnerId: partnerId ?? this.partnerId,
       inviteCode: inviteCode ?? this.inviteCode,
+      partnerInviteCode: partnerInviteCode ?? this.partnerInviteCode,
+      pairingStatus: pairingStatus ?? this.pairingStatus,
       battery: battery ?? this.battery,
       lat: lat ?? this.lat,
       lng: lng ?? this.lng,
@@ -76,6 +84,8 @@ class UserModel {
       coupleId: json['coupleId'] as String?,
       partnerId: json['partnerId'] as String?,
       inviteCode: json['inviteCode'] as String?,
+      partnerInviteCode: json['partnerInviteCode'] as String?,
+      pairingStatus: json['pairingStatus'] as String?,
       battery: json['battery'] as int?,
       lat: (json['lat'] as num?)?.toDouble(),
       lng: (json['lng'] as num?)?.toDouble(),
@@ -103,6 +113,8 @@ class UserModel {
       'coupleId': coupleId,
       'partnerId': partnerId,
       'inviteCode': inviteCode,
+      'partnerInviteCode': partnerInviteCode,
+      'pairingStatus': pairingStatus,
       'battery': battery,
       'lat': lat,
       'lng': lng,

@@ -99,6 +99,15 @@ class MockApiService implements ApiService {
   }
 
   @override
+  Future<void> cancelRequest() async {
+    await _delay();
+    _currentUser = _currentUser?.copyWith(
+      coupleId: null,
+      partnerId: null,
+    );
+  }
+
+  @override
   Future<CoupleModel?> getCouple() async {
     await _delay();
     return _couple;
