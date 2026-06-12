@@ -129,7 +129,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           children: [
                             Expanded(
                               child: PartnerBatteryCard(
-                                batteryLevel: couple.partner?.battery ?? 0,
+                                batteryLevel: couple.partner?.battery,
                               ),
                             ),
                             Expanded(

@@ -17,6 +17,7 @@ class SocketService {
   final _emoteController = StreamController<Map<String, dynamic>>.broadcast();
   final _gameStateController = StreamController<Map<String, dynamic>>.broadcast();
   final _coupleEventsController = StreamController<Map<String, dynamic>>.broadcast();
+  final _locationController = StreamController<Map<String, dynamic>>.broadcast();
 
   // Compatibility controllers for game channel
   final _gameActionController = StreamController<GameAction>.broadcast();
@@ -31,6 +32,7 @@ class SocketService {
   Stream<Map<String, dynamic>> get emoteEvents => _emoteController.stream;
   Stream<Map<String, dynamic>> get gameStateEvents => _gameStateController.stream;
   Stream<Map<String, dynamic>> get coupleEvents => _coupleEventsController.stream;
+  Stream<Map<String, dynamic>> get locationEvents => _locationController.stream;
 
   // Compatibility streams
   Stream<GameAction> get gameActions => _gameActionController.stream;
@@ -121,6 +123,14 @@ class SocketService {
       _liveEventsController.add({'type': 'emote', ...map});
     });
 
+    // GPS updated listener — partner's location changed
+    _socket!.on('gps:updated', (data) {
+      print('Socket gps:updated received: $data');
+      final map = Map<String, dynamic>.from(data as Map);
+      _locationController.add(map);
+      _liveEventsController.add({'type': 'location', ...map});
+    });
+
     // Game state updated listener
     _socket!.on('game:state_updated', (data) {
       print('Socket game:state_updated received: $data');
@@ -166,6 +176,18 @@ class SocketService {
   void sendMusicSync(String title, String? artist) {
     if (_socket != null && _socket!.connected) {
       _socket!.emit('music:sync', {'title': title, 'artist': artist ?? ''});
+    }
+  }
+
+  void clearMusicSync() {
+    if (_socket != null && _socket!.connected) {
+      _socket!.emit('music:sync', {'title': '', 'artist': ''});
+    }
+  }
+
+  void sendGpsUpdate(double lat, double lng) {
+    if (_socket != null && _socket!.connected) {
+      _socket!.emit('gps:update', {'lat': lat, 'lng': lng});
     }
   }
 
@@ -220,5 +242,6 @@ class SocketService {
     _gameActionController.close();
     _gameEventController.close();
     _coupleEventsController.close();
+    _locationController.close();
   }
 }
