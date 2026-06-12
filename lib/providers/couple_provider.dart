@@ -5,6 +5,8 @@ import '../models/user_model.dart';
 import '../services/api_service.dart';
 import '../services/widget_service.dart';
 import '../services/socket_service.dart';
+import '../services/device_telemetry_service.dart';
+import '../services/media_session_service.dart';
 import 'auth_provider.dart';
 
 // ─── Couple State ───
@@ -46,9 +48,33 @@ class CoupleNotifier extends StateNotifier<CoupleState> {
   final SocketService _socket;
   final Ref _ref;
   final List<StreamSubscription> _subscriptions = [];
+  DeviceTelemetryService? _telemetry;
+  MediaSessionService? _media;
 
   CoupleNotifier(this._api, this._socket, this._ref) : super(const CoupleState()) {
     _listenToSocketEvents();
+    _startTelemetry();
+  }
+
+  void _startTelemetry() {
+    _telemetry = DeviceTelemetryService(
+      _socket,
+      onBatteryUpdate: (level) {
+        final authNotifier = _ref.read(authProvider.notifier);
+        if (authNotifier.state.user != null) {
+          authNotifier.updateUser(authNotifier.state.user!.copyWith(battery: level));
+        }
+      },
+      onLocationUpdate: (lat, lng) {
+        final authNotifier = _ref.read(authProvider.notifier);
+        if (authNotifier.state.user != null) {
+          authNotifier.updateUser(authNotifier.state.user!.copyWith(lat: lat, lng: lng));
+        }
+      },
+    );
+    _media = MediaSessionService(_socket);
+    _telemetry!.start();
+    _media!.start();
   }
 
   void _listenToSocketEvents() {
@@ -99,6 +125,19 @@ class CoupleNotifier extends StateNotifier<CoupleState> {
     _subscriptions.add(_socket.pingEvents.listen((data) {
       print('CoupleNotifier: Partner ping event: $data');
       loadCoupleData();
+    }));
+
+    _subscriptions.add(_socket.locationEvents.listen((data) {
+      print('CoupleNotifier: Partner location event: $data');
+      if (state.partner != null && data['from'] == state.partner!.uid) {
+        final lat = (data['lat'] as num?)?.toDouble();
+        final lng = (data['lng'] as num?)?.toDouble();
+        if (lat != null && lng != null) {
+          state = state.copyWith(
+            partner: state.partner!.copyWith(lat: lat, lng: lng),
+          );
+        }
+      }
     }));
 
     _subscriptions.add(_socket.gameStateEvents.listen((data) {
@@ -207,6 +246,8 @@ class CoupleNotifier extends StateNotifier<CoupleState> {
 
   @override
   void dispose() {
+    _telemetry?.stop();
+    _media?.stop();
     for (final sub in _subscriptions) {
       sub.cancel();
     }

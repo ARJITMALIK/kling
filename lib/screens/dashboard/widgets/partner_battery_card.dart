@@ -3,21 +3,23 @@ import '../../../config/theme.dart';
 import '../../../widgets/glass_card.dart';
 
 class PartnerBatteryCard extends StatelessWidget {
-  final int batteryLevel;
+  final int? batteryLevel;
 
   const PartnerBatteryCard({super.key, required this.batteryLevel});
 
   Color get _batteryColor {
-    if (batteryLevel > 60) return AppColors.accentGreen;
-    if (batteryLevel > 20) return AppColors.accentOrange;
+    final level = batteryLevel ?? 50;
+    if (level > 60) return AppColors.accentGreen;
+    if (level > 20) return AppColors.accentOrange;
     return AppColors.accentRed;
   }
 
   IconData get _batteryIcon {
-    if (batteryLevel > 80) return Icons.battery_full;
-    if (batteryLevel > 60) return Icons.battery_5_bar;
-    if (batteryLevel > 40) return Icons.battery_4_bar;
-    if (batteryLevel > 20) return Icons.battery_2_bar;
+    final level = batteryLevel ?? 50;
+    if (level > 80) return Icons.battery_full;
+    if (level > 60) return Icons.battery_5_bar;
+    if (level > 40) return Icons.battery_4_bar;
+    if (level > 20) return Icons.battery_2_bar;
     return Icons.battery_1_bar;
   }
 
@@ -45,7 +47,7 @@ class PartnerBatteryCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            '$batteryLevel%',
+            batteryLevel != null ? '$batteryLevel%' : '--',
             style: TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w800,
@@ -57,7 +59,7 @@ class PartnerBatteryCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
-              value: batteryLevel / 100,
+              value: (batteryLevel ?? 0) / 100,
               backgroundColor: Colors.white.withValues(alpha: 0.08),
               color: _batteryColor,
               minHeight: 6,
