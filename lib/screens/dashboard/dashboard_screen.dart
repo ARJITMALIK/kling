@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:permission_handler/permission_handler.dart';
 import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/couple_provider.dart';
@@ -27,9 +28,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      ref.read(coupleProvider.notifier).loadCoupleData();
+    Future.microtask(() async {
+      await _requestPermissions();
+      if (mounted) {
+        ref.read(coupleProvider.notifier).loadCoupleData();
+      }
     });
+  }
+
+  Future<void> _requestPermissions() async {
+    // Request location permission
+    final locStatus = await Permission.location.status;
+    if (locStatus.isDenied) {
+      await Permission.location.request();
+    }
   }
 
   @override
