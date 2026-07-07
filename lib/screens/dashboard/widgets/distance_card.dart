@@ -9,6 +9,7 @@ class DistanceCard extends StatelessWidget {
   final double? myLng;
   final double? partnerLat;
   final double? partnerLng;
+  final VoidCallback? onTap;
 
   const DistanceCard({
     super.key,
@@ -16,6 +17,7 @@ class DistanceCard extends StatelessWidget {
     this.myLng,
     this.partnerLat,
     this.partnerLng,
+    this.onTap,
   });
 
   double? get _distanceKm {
@@ -38,6 +40,7 @@ class DistanceCard extends StatelessWidget {
     return GlassCard(
       margin: const EdgeInsets.all(6),
       padding: const EdgeInsets.all(16),
+      onTap: onTap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

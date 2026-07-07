@@ -9,6 +9,7 @@ class UserModel {
   final String? partnerInviteCode;
   final String? pairingStatus;
   final int? battery;
+  final String? batteryStatus;
   final double? lat;
   final double? lng;
   final MoodEntry? currentMood;
@@ -27,6 +28,7 @@ class UserModel {
     this.partnerInviteCode,
     this.pairingStatus,
     this.battery,
+    this.batteryStatus,
     this.lat,
     this.lng,
     this.currentMood,
@@ -48,6 +50,7 @@ class UserModel {
     String? partnerInviteCode,
     String? pairingStatus,
     int? battery,
+    String? batteryStatus,
     double? lat,
     double? lng,
     MoodEntry? currentMood,
@@ -66,6 +69,7 @@ class UserModel {
       partnerInviteCode: partnerInviteCode ?? this.partnerInviteCode,
       pairingStatus: pairingStatus ?? this.pairingStatus,
       battery: battery ?? this.battery,
+      batteryStatus: batteryStatus ?? this.batteryStatus,
       lat: lat ?? this.lat,
       lng: lng ?? this.lng,
       currentMood: currentMood ?? this.currentMood,
@@ -87,6 +91,7 @@ class UserModel {
       partnerInviteCode: json['partnerInviteCode'] as String?,
       pairingStatus: json['pairingStatus'] as String?,
       battery: json['battery'] as int?,
+      batteryStatus: json['batteryStatus'] as String?,
       lat: (json['lat'] as num?)?.toDouble(),
       lng: (json['lng'] as num?)?.toDouble(),
       currentMood: json['currentMood'] != null
@@ -116,6 +121,7 @@ class UserModel {
       'partnerInviteCode': partnerInviteCode,
       'pairingStatus': pairingStatus,
       'battery': battery,
+      'batteryStatus': batteryStatus,
       'lat': lat,
       'lng': lng,
       'currentMood': currentMood?.toJson(),

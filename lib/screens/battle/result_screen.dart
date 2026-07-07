@@ -148,7 +148,7 @@ class _ResultScreenState extends State<ResultScreen>
                           text: 'Rematch! ⚔️',
                           gradient: AppColors.gradientFire,
                           onPressed: () {
-                            Navigator.of(context).pushReplacementNamed(AppRoutes.battle);
+                            Navigator.of(context).pushReplacementNamed(AppRoutes.matchmaking);
                           },
                         ),
                         const SizedBox(height: 12),

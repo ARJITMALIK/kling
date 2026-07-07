@@ -6,13 +6,14 @@ class ApiConstants {
   /// iOS simulator can reach `localhost` directly.
   /// For physical devices, replace with your machine's LAN IP.
   static String get _host {
-    return '192.168.1.43';
+    return '192.168.1.34';
   }
 
-  static String get baseUrl => 'http://$_host:3000/api/v1';
+  // static String get baseUrl => 'http://$_host:3000/api/v1';
+  static String get baseUrl => 'https://purebred-scrambler-patronize.ngrok-free.dev/api/v1';
 
   /// Socket.IO connects over HTTP (it upgrades to WS internally).
-  static String get socketUrl => 'http://$_host:3000';
+  static String get socketUrl => 'https://purebred-scrambler-patronize.ngrok-free.dev';
 
   /// The Socket.IO namespace used by the live-gateway.
   static const String socketNamespace = '/live';

@@ -48,7 +48,7 @@ class TroopEntity extends Entity {
   }
 
   void _findTarget(List<Entity> allEntities) {
-    // If current target is dead, clear it
+    // Clear dead target
     if (target != null && target!.isDead) {
       target = null;
     }
@@ -73,18 +73,32 @@ class TroopEntity extends Entity {
       return;
     }
 
-    // Find nearest enemy
-    Entity? nearest;
-    double nearestDist = double.infinity;
+    // Prefer enemy troops over towers — troops cannot damage towers locally
+    // (tower HP is server-authoritative), so keeping troops engaged in troop
+    // combat ensures they die naturally and get cleaned up from the board.
+    Entity? nearestTroop;
+    Entity? nearestTower;
+    double nearestTroopDist = double.infinity;
+    double nearestTowerDist = double.infinity;
+
     for (final e in allEntities) {
       if (e.isDead || !isEnemy(e)) continue;
       final d = distanceTo(e);
-      if (d < nearestDist) {
-        nearestDist = d;
-        nearest = e;
+      if (e is TroopEntity) {
+        if (d < nearestTroopDist) {
+          nearestTroopDist = d;
+          nearestTroop = e;
+        }
+      } else if (e is TowerEntity) {
+        if (d < nearestTowerDist) {
+          nearestTowerDist = d;
+          nearestTower = e;
+        }
       }
     }
-    target = nearest;
+
+    // Enemy troop in range takes priority; fall back to tower as destination
+    target = nearestTroop ?? nearestTower;
   }
 
   void _moveToward(Entity target, double dt) {
@@ -112,7 +126,7 @@ class TroopEntity extends Entity {
     _attackCooldown = attackInterval;
 
     if (data.targetType == TroopTargetType.healer) {
-      // Heal
+      // Heal friendly troops only
       if (target != null && !target!.isDead) {
         target!.hp = (target!.hp + 40).clamp(0, target!.maxHp);
       }
@@ -126,8 +140,10 @@ class TroopEntity extends Entity {
         }
       }
     } else {
-      // Single target damage
-      target?.takeDamage(data.dps);
+      // Single-target damage
+      if (target != null && !target!.isDead) {
+        target!.takeDamage(data.dps);
+      }
     }
   }
 

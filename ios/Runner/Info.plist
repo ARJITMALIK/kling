@@ -71,5 +71,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>This app needs access to location to display the distance between you and your partner.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>This app needs access to location in the background to keep the distance to your partner updated.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>This app needs access to location in the background to keep the distance to your partner updated.</string>
 </dict>
 </plist>

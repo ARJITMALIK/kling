@@ -41,6 +41,9 @@ abstract class ApiService {
   Future<void> requestBattle();
   Future<void> acceptBattle();
   Future<GameStateModel?> getActiveGame();
+  Future<void> deployTroop(String matchId, String troopId);
+  Future<void> surrenderBattle(String matchId);
+  Future<void> destroyTower(String matchId, String targetPlayerId, String towerType);
 }
 
 class LocationAlert {

@@ -244,6 +244,21 @@ class MockApiService implements ApiService {
     return null;
   }
 
+  @override
+  Future<void> deployTroop(String matchId, String troopId) async {
+    await _delay();
+  }
+
+  @override
+  Future<void> surrenderBattle(String matchId) async {
+    await _delay();
+  }
+
+  @override
+  Future<void> destroyTower(String matchId, String targetPlayerId, String towerType) async {
+    await _delay();
+  }
+
   // ─── Helpers ───
 
   void _initCouple() {
