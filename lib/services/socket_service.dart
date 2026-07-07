@@ -16,6 +16,7 @@ class SocketService {
   final _pingController = StreamController<Map<String, dynamic>>.broadcast();
   final _emoteController = StreamController<Map<String, dynamic>>.broadcast();
   final _gameStateController = StreamController<Map<String, dynamic>>.broadcast();
+  final _gameInvitedController = StreamController<Map<String, dynamic>>.broadcast();
   final _coupleEventsController = StreamController<Map<String, dynamic>>.broadcast();
   final _locationController = StreamController<Map<String, dynamic>>.broadcast();
 
@@ -31,6 +32,7 @@ class SocketService {
   Stream<Map<String, dynamic>> get pingEvents => _pingController.stream;
   Stream<Map<String, dynamic>> get emoteEvents => _emoteController.stream;
   Stream<Map<String, dynamic>> get gameStateEvents => _gameStateController.stream;
+  Stream<Map<String, dynamic>> get gameInvitedEvents => _gameInvitedController.stream;
   Stream<Map<String, dynamic>> get coupleEvents => _coupleEventsController.stream;
   Stream<Map<String, dynamic>> get locationEvents => _locationController.stream;
 
@@ -63,6 +65,8 @@ class SocketService {
     _socket = IO.io(url, IO.OptionBuilder()
       .setTransports(['websocket'])
       .setAuth({'token': token})
+      .enableForceNew()
+      .disableMultiplex()
       .enableAutoConnect()
       .setTimeout(10000)
       .setReconnectionDelayMax(5000)
@@ -140,6 +144,22 @@ class SocketService {
       _liveEventsController.add({'type': 'game_state', ...map});
     });
 
+    // Game invite listener
+    _socket!.on('game:invited', (data) {
+      print('Socket game:invited received: $data');
+      final map = Map<String, dynamic>.from(data as Map);
+      _gameInvitedController.add(map);
+      _liveEventsController.add({'type': 'game_invited', ...map});
+    });
+
+    // Game action listener
+    _socket!.on('game:action', (data) {
+      print('Socket game:action received: $data');
+      final map = Map<String, dynamic>.from(data as Map);
+      final action = GameAction.fromJson(map);
+      _gameActionController.add(action);
+    });
+
     // Couple events listeners
     _socket!.on('couple:pending', (data) {
       print('Socket couple:pending received: $data');
@@ -167,9 +187,9 @@ class SocketService {
     }
   }
 
-  void sendBatterySync(int level) {
+  void sendBatterySync(int level, String status) {
     if (_socket != null && _socket!.connected) {
-      _socket!.emit('battery:sync', {'level': level});
+      _socket!.emit('battery:sync', {'level': level, 'status': status});
     }
   }
 
@@ -218,9 +238,9 @@ class SocketService {
   }
 
   void sendGameAction(GameAction action) {
-    // Game actions are now sent via the REST deployTroop endpoint in RealApiService.
-    // This is a stub for backward compatibility.
-    print('sendGameAction stub called: ${action.toJson()}');
+    if (_socket != null && _socket!.connected) {
+      _socket!.emit('game:action', action.toJson());
+    }
   }
 
   void disconnectFromGame() {
@@ -239,6 +259,7 @@ class SocketService {
     _pingController.close();
     _emoteController.close();
     _gameStateController.close();
+    _gameInvitedController.close();
     _gameActionController.close();
     _gameEventController.close();
     _coupleEventsController.close();

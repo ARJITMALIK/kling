@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../config/theme.dart';
-import '../../config/routes.dart';
+import '../../providers/couple_provider.dart';
 import '../../widgets/bottom_nav.dart';
 
-class MatchmakingScreen extends StatefulWidget {
+class MatchmakingScreen extends ConsumerStatefulWidget {
   const MatchmakingScreen({super.key});
 
   @override
-  State<MatchmakingScreen> createState() => _MatchmakingScreenState();
+  ConsumerState<MatchmakingScreen> createState() => _MatchmakingScreenState();
 }
 
-class _MatchmakingScreenState extends State<MatchmakingScreen>
+class _MatchmakingScreenState extends ConsumerState<MatchmakingScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
   bool _isSearching = false;
@@ -32,13 +33,7 @@ class _MatchmakingScreenState extends State<MatchmakingScreen>
 
   void _startBattle() {
     setState(() => _isSearching = true);
-
-    // For demo: auto-start after 2 seconds
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        Navigator.of(context).pushReplacementNamed(AppRoutes.battle);
-      }
-    });
+    ref.read(coupleProvider.notifier).requestBattle();
   }
 
   @override

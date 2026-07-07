@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import '../models/couple_model.dart';
 import '../models/user_model.dart';
 import '../services/api_service.dart';
@@ -59,10 +60,13 @@ class CoupleNotifier extends StateNotifier<CoupleState> {
   void _startTelemetry() {
     _telemetry = DeviceTelemetryService(
       _socket,
-      onBatteryUpdate: (level) {
+      onBatteryUpdate: (level, status) {
         final authNotifier = _ref.read(authProvider.notifier);
         if (authNotifier.state.user != null) {
-          authNotifier.updateUser(authNotifier.state.user!.copyWith(battery: level));
+          authNotifier.updateUser(authNotifier.state.user!.copyWith(
+            battery: level,
+            batteryStatus: status,
+          ));
         }
       },
       onLocationUpdate: (lat, lng) {
@@ -75,6 +79,12 @@ class CoupleNotifier extends StateNotifier<CoupleState> {
     _media = MediaSessionService(_socket);
     _telemetry!.start();
     _media!.start();
+  }
+
+  /// Triggers a verbose battery read — useful for debugging platform issues.
+  /// All steps are printed to the console with the exact exception if one occurs.
+  Future<void> debugBatteryRead() async {
+    await _telemetry?.debugBatteryRead();
   }
 
   void _listenToSocketEvents() {
@@ -99,6 +109,7 @@ class CoupleNotifier extends StateNotifier<CoupleState> {
       if (state.partner != null && data['from'] == state.partner!.uid) {
         final updatedPartner = state.partner!.copyWith(
           battery: (data['level'] as num).toInt(),
+          batteryStatus: data['status'] as String?,
         );
         state = state.copyWith(partner: updatedPartner);
         WidgetService.syncPartnerStats(updatedPartner);
@@ -178,6 +189,11 @@ class CoupleNotifier extends StateNotifier<CoupleState> {
   Future<bool> joinCouple(String code) async {
     try {
       await _api.joinCouple(code);
+      // joinCouple refreshed our JWT with the new coupleId. Reconnect the live
+      // socket so it rejoins the correct couple room — otherwise it stays in the
+      // old/deleted room and never receives the couple:linked event, leaving the
+      // device stuck while the partner advances.
+      _ref.read(authProvider.notifier).reconnectSocket();
       await loadCoupleData();
       return true;
     } catch (e) {
@@ -189,6 +205,9 @@ class CoupleNotifier extends StateNotifier<CoupleState> {
   Future<bool> cancelRequest() async {
     try {
       await _api.cancelRequest();
+      // cancelRequest also refreshes the JWT (coupleId changes back to a stub),
+      // so the socket must rejoin the correct room.
+      _ref.read(authProvider.notifier).reconnectSocket();
       await loadCoupleData();
       return true;
     } catch (e) {
@@ -242,6 +261,41 @@ class CoupleNotifier extends StateNotifier<CoupleState> {
 
   Future<void> requestBattle() async {
     await _api.requestBattle();
+  }
+
+  Future<void> acceptBattle() async {
+    await _api.acceptBattle();
+  }
+
+  Future<void> requestLocationPermissionAndSync() async {
+    try {
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.deniedForever) {
+        await Geolocator.openAppSettings();
+        return;
+      }
+      if (permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always) {
+        final pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 10),
+          ),
+        );
+        final authNotifier = _ref.read(authProvider.notifier);
+        if (authNotifier.state.user != null) {
+          authNotifier.updateUser(
+            authNotifier.state.user!.copyWith(lat: pos.latitude, lng: pos.longitude),
+          );
+        }
+        _socket.sendGpsUpdate(pos.latitude, pos.longitude);
+      }
+    } catch (e) {
+      print('CoupleNotifier: Error requesting location permission and syncing: $e');
+    }
   }
 
   @override

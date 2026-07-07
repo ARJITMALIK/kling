@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../config/theme.dart';
 import '../../config/routes.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/couple_provider.dart';
 import '../../widgets/glass_card.dart';
 import '../../widgets/gradient_button.dart';
@@ -76,6 +77,25 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
     }
   }
 
+  /// Re-fetches (and recreates if missing) this device's own invite code.
+  /// Fixes the "Please generate your invite code first" / "Invite code not
+  /// found" errors that occur when a stub couple is missing or stale.
+  Future<void> _refreshCode() async {
+    await _fetchState();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invite code refreshed 🔄')),
+      );
+    }
+  }
+
+  Future<void> _logout() async {
+    await ref.read(authProvider.notifier).logout();
+    if (mounted) {
+      Navigator.of(context).pushReplacementNamed(AppRoutes.login);
+    }
+  }
+
   Future<void> _cancelRequest() async {
     setState(() => _isJoining = true);
     final success = await ref.read(coupleProvider.notifier).cancelRequest();
@@ -115,7 +135,20 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
               children: [
-                const SizedBox(height: 40),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: _logout,
+                    icon: const Icon(Icons.logout,
+                        size: 18, color: AppColors.textSecondary),
+                    label: const Text(
+                      'Logout',
+                      style: TextStyle(color: AppColors.textSecondary),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 const Text('💑', style: TextStyle(fontSize: 56)),
                 const SizedBox(height: 16),
                 ShaderMask(
@@ -218,6 +251,16 @@ class _InviteScreenState extends ConsumerState<InviteScreen> {
           const Text(
             'Tap to copy • Share with your partner',
             style: TextStyle(color: AppColors.textMuted, fontSize: 12),
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: _isLoading ? null : _refreshCode,
+            icon: const Icon(Icons.refresh,
+                size: 18, color: AppColors.accentPink),
+            label: const Text(
+              'Refresh code',
+              style: TextStyle(color: AppColors.accentPink),
+            ),
           ),
         ],
       ),

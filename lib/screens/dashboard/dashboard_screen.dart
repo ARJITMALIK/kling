@@ -1,12 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../../config/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/couple_provider.dart';
 import '../../widgets/bottom_nav.dart';
-import '../../widgets/glass_card.dart';
-import '../../widgets/gradient_button.dart';
 import 'widgets/partner_battery_card.dart';
 import 'widgets/distance_card.dart';
 import 'widgets/mood_card.dart';
@@ -29,19 +26,11 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   void initState() {
     super.initState();
     Future.microtask(() async {
-      await _requestPermissions();
+      await ref.read(coupleProvider.notifier).requestLocationPermissionAndSync();
       if (mounted) {
         ref.read(coupleProvider.notifier).loadCoupleData();
       }
     });
-  }
-
-  Future<void> _requestPermissions() async {
-    // Request location permission
-    final locStatus = await Permission.location.status;
-    if (locStatus.isDenied) {
-      await Permission.location.request();
-    }
   }
 
   @override
@@ -142,6 +131,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                             Expanded(
                               child: PartnerBatteryCard(
                                 batteryLevel: couple.partner?.battery,
+                                batteryStatus: couple.partner?.batteryStatus,
+                                myBatteryLevel: auth.user?.battery,
+                                myBatteryStatus: auth.user?.batteryStatus,
+                                onTap: () {
+                                  ref.read(coupleProvider.notifier).debugBatteryRead();
+                                },
                               ),
                             ),
                             Expanded(
@@ -150,6 +145,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                                 myLng: auth.user?.lng,
                                 partnerLat: couple.partner?.lat,
                                 partnerLng: couple.partner?.lng,
+                                onTap: () {
+                                  ref.read(coupleProvider.notifier).requestLocationPermissionAndSync();
+                                },
                               ),
                             ),
                           ],

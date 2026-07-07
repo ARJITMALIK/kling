@@ -198,7 +198,10 @@ class RealApiService implements ApiService {
   Future<UserModel?> getPartnerStatus() async {
     try {
       final res = await _get('/pairs/partner');
-      // Backend returns {id, displayName, avatarUrl, status, myInviteCode, partnerInviteCode}
+      // Backend returns {id, displayName, avatarUrl, status, myInviteCode, partnerInviteCode, battery, lat, lng, currentMood, currentSong}
+      final moodMap = res['currentMood'] as Map<String, dynamic>?;
+      final songMap = res['currentSong'] as Map<String, dynamic>?;
+
       return UserModel(
         uid: res['id'] as String,
         email: '', // Not exposed by partner endpoint
@@ -207,9 +210,26 @@ class RealApiService implements ApiService {
         pairingStatus: res['status'] as String?,
         inviteCode: res['myInviteCode'] as String?,
         partnerInviteCode: res['partnerInviteCode'] as String?,
+        battery: res['battery'] != null ? (res['battery'] as num).toInt() : null,
+        batteryStatus: res['batteryStatus'] as String?,
+        lat: (res['lat'] as num?)?.toDouble(),
+        lng: (res['lng'] as num?)?.toDouble(),
+        currentMood: moodMap != null
+            ? MoodEntry(
+                emoji: moodMap['emoji'] as String,
+                setAt: DateTime.parse(moodMap['setAt'] as String),
+              )
+            : null,
+        currentSong: songMap != null
+            ? SongEntry(
+                title: songMap['title'] as String,
+                artist: songMap['artist'] as String,
+              )
+            : null,
         createdAt: DateTime.now(),
       );
-    } catch (_) {
+    } catch (e) {
+      print('RealApiService: getPartnerStatus error: $e');
       return null;
     }
   }
@@ -324,13 +344,12 @@ class RealApiService implements ApiService {
 
   @override
   Future<void> requestBattle() async {
-    await _post('/game/start', {});
+    await _post('/game/invite', {});
   }
 
   @override
   Future<void> acceptBattle() async {
-    // Game start is done via POST /game/start by either player
-    // The match state is broadcast via WebSocket
+    await _post('/game/accept', {});
   }
 
   @override
@@ -345,11 +364,27 @@ class RealApiService implements ApiService {
     return await _post('/game/start', {});
   }
 
-  /// Deploy a troop in an active match.
-  Future<Map<String, dynamic>> deployTroop(String matchId, String troopId) async {
-    return await _post('/game/deploy', {
+  @override
+  Future<void> deployTroop(String matchId, String troopId) async {
+    await _post('/game/deploy', {
       'matchId': matchId,
       'troopId': troopId,
+    });
+  }
+
+  @override
+  Future<void> surrenderBattle(String matchId) async {
+    await _post('/game/surrender', {
+      'matchId': matchId,
+    });
+  }
+
+  @override
+  Future<void> destroyTower(String matchId, String targetPlayerId, String towerType) async {
+    await _post('/game/destroy-tower', {
+      'matchId': matchId,
+      'targetPlayerId': targetPlayerId,
+      'towerType': towerType,
     });
   }
 

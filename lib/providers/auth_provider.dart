@@ -62,6 +62,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  /// Reconnects the live socket using the latest access token.
+  ///
+  /// Must be called whenever the JWT's `coupleId` changes (e.g. after pairing,
+  /// unpairing, or cancelling a request). The live gateway puts each socket into
+  /// `couple-room:<coupleId>` based on the coupleId decoded from the JWT *at
+  /// connect time*. If we don't reconnect after pairing, the socket stays
+  /// subscribed to the old (now-deleted) couple room and never receives the
+  /// `couple:pending` / `couple:linked` events — leaving that device stuck.
+  void reconnectSocket() {
+    _connectSocket();
+  }
+
   /// Reads the device battery + GPS once and updates the user model so the
   /// DistanceCard and BatteryCard have an initial value to show.
   Future<void> _seedOwnTelemetry() async {
